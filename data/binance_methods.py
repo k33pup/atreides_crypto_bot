@@ -13,7 +13,7 @@ import logging
 from extra import settings
 from data.report import *
 
-logging.basicConfig(filename="swag logs/example.log", level=logging.INFO)
+logging.basicConfig(filename="swag logs/binance.log", level=logging.INFO)
 log_error = logging.getLogger("RUNBOT")
 log_signal = logging.getLogger("SIGNAL")
 
@@ -110,7 +110,7 @@ class Manager:
                 (coin_price >= orders_data[coin_pare]['sl'] and orders_data[coin_pare]['route'] == "SELL"):
             profit = self.get_proc(orders_data, coin_pare, coin_price)
             add_to_history(orders_data, coin_pare, coin_price, profit)
-            return profit
+            return profit, False
         elif coin_price >= orders_data[coin_pare]['tp'][0] and orders_data[coin_pare]['route'] == 'BUY':
             temp_sl = coin_price - (coin_price * settings.sl_procent / 100 / orders_data[coin_pare]['lev'])
         elif coin_price <= orders_data[coin_pare]['tp'][0] and orders_data[coin_pare]['route'] == 'SELL':
@@ -130,11 +130,11 @@ class Manager:
         answer = self.check_coin_pare(open_order_data, coin_pare, coin_price)
         if answer == settings.reached_all_targets_text:
             return answer
-        elif type(answer) == float:
-            return False, coin_pare, answer
-        elif answer:
-            return True, coin_pare, answer[0]
-        return False
+        elif not answer:
+            return False
+        elif not answer[1]:
+            return False, coin_pare, answer[0]
+        return True, coin_pare, answer[0]
 
     def cancel_order_for_profit(self, pare, price, route):
         try:

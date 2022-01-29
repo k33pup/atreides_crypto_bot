@@ -6,31 +6,35 @@ from datetime import date, timedelta, datetime
 import json
 import requests
 from data.report import *
-
-
-# from telegram import bot
+from telegram.bot_setup import tele_main
+from data.db.mongo import DbManager
+from multiprocessing import Process
 
 
 def send_signal(coin, signal, coin_price):
+    ids = DbManager().get_all_chats_id('simple')
     text = f"✨ OH, NEW HUGE SIGNAL!. \nCOIN is {coin}, DIRECTION is {signal}. \nOPEN PRICE is {coin_price}"
     print(f"Coin - {coin}, route - {signal}, price - {coin_price}")
-    requests.post(
-        url=f'https://api.telegram.org/bot{settings.TOKEN}/sendMessage',
-        data={'chat_id': settings.MY_CHANNEL, 'text': text}
-    ).json()
+    for chat_id in ids:
+        requests.post(
+            url=f'https://api.telegram.org/bot{settings.TOKEN}/sendMessage',
+            data={'chat_id': chat_id, 'text': text}
+        ).json()
 
 
 def send_reached_target(is_open, coin_pare, profit):
+    ids = DbManager().get_all_chats_id('simple')
     if not is_open:
-        text = f"CLOSED BY STOP-LOSS on {coin_pare}. PROFIT {profit}%"
+        text = f"CLOSED BY STOP-LOSS on {coin_pare}. PROFIT {round(profit, 2)}%"
     else:
-        text = f"ALREADY REACHED {profit}% on {coin_pare}"
+        text = f"ALREADY REACHED {round(profit, 2)}% on {coin_pare}"
     print(text.lower())
     settings.log_signal.info(text)
-    requests.post(
-        url=f'https://api.telegram.org/bot{settings.TOKEN}/sendMessage',
-        data={'chat_id': settings.MY_CHANNEL, 'text': text}
-    ).json()
+    for chat_id in ids:
+        requests.post(
+            url=f'https://api.telegram.org/bot{settings.TOKEN}/sendMessage',
+            data={'chat_id': chat_id, 'text': text}
+        ).json()
 
 
 def look_for_signal(BinanceManager, DataAnalyser):
@@ -74,7 +78,7 @@ def check_exist_signals(BinanceManager):
         time.sleep(0.1)
 
 
-def main():
+def binance_main():
     try:
         BinanceManager = Manager(20)
         DataAnalyser = Analyser()
@@ -91,4 +95,9 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    p1 = Process(target=binance_main)
+    p1.start()
+    p2 = Process(target=tele_main)
+    p2.start()
+    p1.join()
+    p2.join()

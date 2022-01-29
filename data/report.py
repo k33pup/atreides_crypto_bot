@@ -51,6 +51,10 @@ def set_sl(coin_pare, sl_price):
 
 
 def add_to_history(orders_data, coin_pare, coin_price, profit):
+    if coin_pare in orders_data:
+        orders_data.pop(coin_pare)
+    with open('./swag logs/active orders.json', 'w') as json_file:
+        json.dump(orders_data, json_file)
     post = [str(datetime.now()), coin_pare, orders_data[coin_pare]['open_price'], coin_price, profit]
     with open("./swag logs/signals.csv", "a", newline='', encoding='utf-8') as csv_file:
         write_data = csv.writer(csv_file, delimiter=';')

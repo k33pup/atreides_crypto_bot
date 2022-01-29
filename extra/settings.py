@@ -14,7 +14,7 @@ algo_ratio = 5
 tp_quantity = 10
 MY_CHANNEL = -1001732576576
 TOKEN = os.environ['BOT_TOKEN']
-logging.basicConfig(filename="swag logs/example.log", level=logging.INFO)
+logging.basicConfig(filename="swag logs/binance.log", level=logging.INFO)
 log_error = logging.getLogger("RUNBOT")
 log_signal = logging.getLogger("SIGNAL")
 currency = 'USDT'
@@ -32,3 +32,4 @@ reached_all_targets_text = 'ALL TARGETS DONE!'
 schedule = [14, 29, 44, 59]
 sl_procent = 20
 sl_start_procent = 40
+activate_key = "12345"
