@@ -1,21 +1,10 @@
+import logging
 import os
-import textwrap
-import time
-from math import ceil
+import settings
 import pandas as pd
 from binance.client import Client
-from pprint import pprint
-from datetime import date, timedelta
-from data.indicators import Analyser
-import json
-import csv
-import logging
-from extra import settings
+import time
 from data.report import *
-
-logging.basicConfig(filename="swag logs/binance.log", level=logging.INFO)
-log_error = logging.getLogger("RUNBOT")
-log_signal = logging.getLogger("SIGNAL")
 
 
 class Manager:
@@ -26,53 +15,41 @@ class Manager:
         self.client = Client(__api_key, __api_secret)
         self.take_profit = 10
 
-    def show_coin_balance(self, coin_name):
-        try:
-            coin_name = coin_name.upper()
-            result = 0.0
-            balances_normal = [i for i in self.client.get_account()['balances'] if float(i["free"]) > 0]
-            for el in balances_normal:
-                if el['asset'] == coin_name:
-                    result = el['free']
-                    break
-            return result
-        except Exception as er:
-            log_error.exception(er)
-
     def show_coin_price(self, coin_pare):
         price = " ".join(
             [i['price'] for i in self.client.futures_symbol_ticker() if i['symbol'] == coin_pare])
         return round(float(price), 3)
 
     def make_futures_order(self, coin_name, pair, route, value):
-        if value == 0:
-            raise ValueError("Неправильная сумма!")
         try:
             if not settings.real_work:
                 return
+            if value > self.show_futures_currency_balance():
+                return
             coin_pare = coin_name.upper() + pair.upper()
-            coin_info = self.client.futures_symbol_ticker()
-            coin_price = self.show_coin_price(coin_pare)
-            if not coin_info:
-                raise ValueError(f"Пары {coin_pare} не существует!")
+            order_marge = value * self.main_leverage
             self.client.futures_change_leverage(symbol=coin_pare, leverage=self.main_leverage)
             order = self.client.futures_create_order(
                 symbol=coin_pare,
                 type='MARKET',
                 side=route,
-                quantity=coin_price if 10 <= coin_price <= 100 else value * self.main_leverage
+                quantity=order_marge
             )
-            order_info = self.client.futures_get_order(symbol=coin_pare,
-                                                       orderId=order[
-                                                           'orderId'])
+            order_info = self.client.futures_get_order(symbol=coin_pare, orderId=order['orderId'])
             print(
                 f"SUCCESSFULLY BOUGHT - {coin_pare} for price - {order_info['avgPrice']} \n"
                 f"Marge - {order_info['cumQuote']}$ Leverage - {self.main_leverage}x")
             return order_info
         except Exception as er:
-            log_error.exception(er)
+            settings.log_error.error(er)
 
-    def show_coin_volume(self, coin_pare: str, start_date: str, end_date: str, interval: str):
+    def show_coin_volume(self, coin_pare: str, start_date: str, end_date: str, interval: str) -> pd.DataFrame:
+        data = self.get_historical_data(coin_pare, interval, start_date, end_date)
+        candy_types = [int(row['open'] < row['close']) for i, row in data.iterrows()]
+        data['candy_type'] = candy_types
+        return data
+
+    def get_historical_data(self, coin_pare, interval, start_date, end_date):
         data = pd.DataFrame(self.client.futures_historical_klines(
             symbol=coin_pare,
             interval=interval,
@@ -85,8 +62,6 @@ class Manager:
         data['date'] = pd.to_datetime(data['date'], unit='ms')
         for col in data.columns[1:]:
             data[col] = pd.to_numeric(data[col])
-        candy_types = [int(row['open'] < row['close']) for i, row in data.iterrows()]
-        data['candy_type'] = candy_types
         return data
 
     def show_open_order_data(self, coin_pare):
@@ -136,30 +111,15 @@ class Manager:
             return False, coin_pare, answer[0]
         return True, coin_pare, answer[0]
 
-    def cancel_order_for_profit(self, pare, price, route):
-        try:
-            if not (answer := self.show_open_order_data(pare)):
-                return False
-            print(f"REALISED PROFIT - {answer['unrealizedProfit']}")
-            close_price = round(price, 3)
-            print(route)
-            self.client.futures_create_order(symbol=pare, side=settings.help_direction[route], type='STOP_MARKET',
-                                             stopPrice=close_price, closePosition='true')
-            print(f"CLOSED POSITION {answer['symbol']}")
-            with open('swag logs/active orders.json', 'r') as data_file:
-                data = json.load(data_file)
-            data.pop(pare)
-            with open('swag logs/active orders.json', 'w') as data_file:
-                json.dump(data, data_file)
-            print(answer)
-            with open("signals.csv", "w", newline='', encoding='utf-8') as csv_file:
-                data = csv.DictWriter(csv_file, fieldnames=['coin_pare', 'open_price', 'volume', 'profit'])
-                data.writerow(
-                    {"coin_pare": pare, 'open_price': answer['entryPrice'],
-                     'volume': answer['initialMargin'], 'profit': answer['unrealizedProfit']})
-        except Exception as er:
-            print(er)
+    def show_futures_currency_balance(self):
+        balance = [i for i in self.client.futures_account_balance() if i['asset'] == settings.currency]
+        if balance:
+            return float(balance[0]['balance'])
+        return False
 
 
 if __name__ == '__main__':
-    print(json.load(open('./swag logs/active orders.json')))
+    ex = Manager(10)
+    print(ex.show_futures_currency_balance())
+    print(ex.client.futures_get_open_orders())
+    ex.client.futures_cancel_order(symbol='XRPUSDT', orderId=19556743043)

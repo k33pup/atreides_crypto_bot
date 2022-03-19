@@ -1,5 +1,9 @@
 import os
 import logging
+import pathlib
+from pathlib import Path
+from data.report import setup_logger
+
 
 coin_list = [
     "1INCH", "ALGO", "AVAX", "AXS", "CHZ", "COMP",
@@ -14,11 +18,11 @@ algo_ratio = 5
 tp_quantity = 10
 MY_CHANNEL = -1001732576576
 TOKEN = os.environ['BOT_TOKEN']
-logging.basicConfig(filename="swag logs/binance.log", level=logging.INFO)
-log_error = logging.getLogger("RUNBOT")
-log_signal = logging.getLogger("SIGNAL")
+log_error = setup_logger('ERROR', f"swag logs/errors.log", logging.ERROR)
+log_binance = setup_logger('BINANCE', f'swag logs/binance.log')
+log_telegram = setup_logger('TELEGRAM', f'swag logs/telegram.log')
 currency = 'USDT'
-interval = '15m'
+algo_interval = '15m'
 help_interval = {
     '15m': 900,
     '5m': 300,
@@ -28,8 +32,10 @@ help_direction = {
     0: "SELL",
     1: "BUY",
 }
+
 reached_all_targets_text = 'ALL TARGETS DONE!'
 schedule = [14, 29, 44, 59]
-sl_procent = 20
+sl_procent = 15
 sl_start_procent = 40
 activate_key = "12345"
+order_volume = 5

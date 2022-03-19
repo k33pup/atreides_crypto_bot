@@ -1,10 +1,10 @@
 from aiogram.dispatcher import FSMContext, Dispatcher
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram import types
-from telegram.keyboards import *
-from telegram.settings import *
-from extra.settings import activate_key
-from data.db.mongo import DbManager
+from telegram.telegram_setup import *
+from data.database.commands import DbManager
+
+activate_key = '12345'
 
 
 class UserStates(StatesGroup):
@@ -28,7 +28,7 @@ async def answer_password(message: types.Message, state: FSMContext):
         return
     await state.finish()
     database = DbManager()
-    database.add_user(message.from_user.id, 'simple', message.chat.id)
+    database.add_user(message.from_user.id, message.chat.id, 'simple')
     await message.answer(accept_license)
 
 
