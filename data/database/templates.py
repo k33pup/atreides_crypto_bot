@@ -1,4 +1,7 @@
-UserData_query = """INSERT INTO "UsersData" (tg_id, chat_id, license, reg_time, last_pay) VALUES (%s, %s, %s, %s, %s)"""
+UserData_query = """INSERT INTO "UsersData" 
+(tg_id, license, binance_api_key, binance_secret_api_key, join_date) 
+VALUES (%s, %s, %s, %s, %s)
+"""
 GeneralSettings_query = """INSERT INTO "GeneralSettings" (id, coins, work_condition, currency) VALUES (%s, %s, %s, %s)"""
 OrdersSettings_query = """INSERT INTO "OrdersSettings" (id, symbol, leverage, stage_condition, sl_start_percent, 
                             tp_first, tp_number, tp_only_one, sl_stage_percent) 

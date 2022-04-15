@@ -1,24 +1,44 @@
 import logging
 import os
-import settings
+import asyncio
 import pandas as pd
-from binance.client import Client
-import time
+import requests
+from binance.client import AsyncClient
+from data.database.commands import DbManager
+import aiohttp
 from data.report import *
 
 
-class Manager:
-    def __init__(self, leverage):
-        __api_key = os.environ["BINANCE_API_KEY"]
-        __api_secret = os.environ["BINANCE_SECRET_API_KEY"]
-        self.main_leverage = leverage
-        self.client = Client(__api_key, __api_secret)
-        self.take_profit = 10
+class BinanceManager:
+    def __init__(self, tg_user_id):
+        self.__db = DbManager()
+        self.user_id = self.__db.get_user_db_id(tg_user_id)
+        self.currency = self.__db.get_user_currency(self.user_id)
+        self.__auth_data = self.__db.get_user_keys(self.user_id)
+        self.api_url = 'https://api.binance.com/api/v3/klines'
 
-    def show_coin_price(self, coin_pare):
-        price = " ".join(
-            [i['price'] for i in self.client.futures_symbol_ticker() if i['symbol'] == coin_pare])
-        return round(float(price), 3)
+    async def show_coin_price(self, coin_pare):
+        client = await AsyncClient.create(*self.__auth_data)
+        response = await client.futures_mark_price(symbol=coin_pare)
+        price = round(float(response['markPrice']), 3)
+        await client.close_connection()
+        return price
+
+    async def get_historical_data(self, coin_pare, interval, start_date, end_date) -> pd.DataFrame:
+        url = f'{self.api_url}?symbol={coin_pare}&interval={interval}&startTime={start_date}&endTime={end_date}'
+        async with aiohttp.ClientSession() as session:
+            response = await session.get(url)
+            response_data = await response.json()
+        print(response_data)
+        data = pd.DataFrame(json.load(response_data))
+        if data.empty:
+            return data
+        data = data.drop(range(6, 12), axis=1)
+        data.columns = ['date', 'open', 'high', 'low', 'close', 'volume']
+        data['date'] = pd.to_datetime(data['date'], unit='ms')
+        for col in data.columns[1:]:
+            data[col] = pd.to_numeric(data[col])
+        return data
 
     def make_futures_order(self, coin_name, pair, route, value):
         try:
@@ -47,21 +67,6 @@ class Manager:
         data = self.get_historical_data(coin_pare, interval, start_date, end_date)
         candy_types = [int(row['open'] < row['close']) for i, row in data.iterrows()]
         data['candy_type'] = candy_types
-        return data
-
-    def get_historical_data(self, coin_pare, interval, start_date, end_date):
-        data = pd.DataFrame(self.client.futures_historical_klines(
-            symbol=coin_pare,
-            interval=interval,
-            start_str=start_date,
-            end_str=end_date,
-
-        ))
-        data = data.iloc[:, :6]
-        data.columns = ['date', 'open', 'high', 'low', 'close', 'volume']
-        data['date'] = pd.to_datetime(data['date'], unit='ms')
-        for col in data.columns[1:]:
-            data[col] = pd.to_numeric(data[col])
         return data
 
     def show_open_order_data(self, coin_pare):
@@ -97,7 +102,7 @@ class Manager:
 
     def check_coin_for_profit(self, coin_pare):
         coin_price = self.show_coin_price(coin_pare)
-        open_order_data = json.load(open('./swag logs/active orders.json', 'r'))
+        # open_order_data = json.load(open('./swag logs/active orders.json', 'r'))
         if coin_pare not in open_order_data:
             return False
         if not open_order_data[coin_pare]['tp']:
@@ -111,15 +116,23 @@ class Manager:
             return False, coin_pare, answer[0]
         return True, coin_pare, answer[0]
 
-    def show_futures_currency_balance(self):
-        balance = [i for i in self.client.futures_account_balance() if i['asset'] == settings.currency]
-        if balance:
-            return float(balance[0]['balance'])
-        return False
+    async def show_futures_currency_balance(self):
+        all_balances = await self.client.futures_account_balance()
+        for coin in all_balances:
+            if coin['asset'] == self.currency:
+                return coin['withdrawAvailable']
+        return None
+
+
+async def main():
+    ex = BinanceManager(595905860)
+    res = await ex.get_historical_data('BTCUSDT', '5m', '2022-04-12 18:00:08', '2022-04-12 19:20:08')
+    print(res)
+    print(res.info())
+    for i in res.columns:
+        print(i)
 
 
 if __name__ == '__main__':
-    ex = Manager(10)
-    print(ex.show_futures_currency_balance())
-    print(ex.client.futures_get_open_orders())
-    ex.client.futures_cancel_order(symbol='XRPUSDT', orderId=19556743043)
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(main())

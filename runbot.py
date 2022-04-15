@@ -1,15 +1,11 @@
 import time
 from datetime import date, timedelta
-from multiprocessing import Process
 
-import pandas
 import requests
 import settings
-from data.binance_methods import Manager
-from data.indicators import Analyser
+from data.markets.Binance.binance_methods import Manager
+from data.stategy.indicators import Analyser
 from data.report import *
-from telegram.bot_setup import tele_main
-import matplotlib.pyplot as plt
 
 
 def send_signal(coin, signal, coin_price):
@@ -39,7 +35,7 @@ def send_reached_target(is_open, coin_pare, profit):
 
 
 def look_for_signal(BinanceManager, DataAnalyser):
-    with open('swag logs/active orders.json', 'r') as myfile:
+    with open('logs/active orders.json', 'r') as myfile:
         data = json.loads(myfile.read())
     used_coins = []
     print(f"Looking for signal... at {datetime.now()}")
@@ -69,7 +65,7 @@ def look_for_signal(BinanceManager, DataAnalyser):
 
 
 def check_exist_signals(BinanceManager):
-    data = json.load(open('swag logs/active orders.json', 'r'))
+    data = json.load(open('logs/active orders.json', 'r'))
     for coin in data:
         if answer := BinanceManager.check_coin_for_profit(coin):
             if answer is not False:
@@ -106,7 +102,7 @@ def test():
             if answer:
                 print(f'{coin} - {answer[-1][-1]} {answer[-1][0]}')
             time.sleep(1)
-        time.sleep(10)
+        time.sleep(1)
 
 
 if __name__ == '__main__':
