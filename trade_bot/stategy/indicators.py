@@ -1,13 +1,18 @@
-from extra.callbacks import *
-import settings
+import asyncio
+
+import pandas as pd
+
+from trade_bot.exceptions.callbacks import *
+# import settings
 import pandas
-import matplotlib.pyplot as plt
+from datetime import date, datetime, timedelta
+from trade_bot.markets.Binance_Client.binance_manager import BinanceManager
 
 
 class Analyser:
     def __init__(self):
         self.route_help = {1: "BUY", 0: "SELL"}
-        self.ratio = settings.algo_ratio
+        self.ratio = 10
 
     def solve_for_last_candies(self, data):
         last_volume = data.iloc[-1]['volume']
@@ -73,3 +78,56 @@ class Analyser:
                         result.append((candles_data.iloc[i]['date'], route))
                         last_cross = i
         return result
+
+
+async def find_similarity(sample_frame: pd.DataFrame, test_frame: pd.DataFrame, window: int):
+    percent = 0
+    wrong_candles = 0
+    for j in range(window):
+        first, second = sample_frame.iloc[j], test_frame.iloc[j]
+        if (first['open'] < first['close'] and second['open'] < second['close']) or \
+                (first['open'] > first['close'] and second['open'] > second['close']):
+            if first['open'] < first['close']:
+                candles = sorted((first['close'] - first['open'], second['close'] - second['open']))
+                shadows = sorted((first['high'] - first['low'], second['high'] - second['low']))
+            else:
+                candles = sorted((first['open'] - first['close'], second['open'] - second['close']))
+                shadows = sorted((first['high'] - first['low'], second['high'] - second['low']))
+            block_proc = (candles[0] / candles[1] + shadows[0] / shadows[1]) / 2
+            percent += block_proc
+        else:
+            wrong_candles += 1
+    percent -= (wrong_candles / 100)
+    percent /= window
+    return percent
+
+
+async def new_method(symbol, interval, window):
+    client = BinanceManager(595905860)
+    sample = await client.get_historical_data(symbol, interval,
+                                              str(datetime.utcnow() - timedelta(minutes=window * 5)),
+                                              str(datetime.utcnow()))
+    open_time = datetime(year=2017, month=8, day=17, hour=4)
+    close_time = open_time + timedelta(minutes=window * 5 - 1)
+    temp_frame = await client.get_historical_data(symbol, interval, str(open_time), str(close_time))
+    best_block_percent = 0
+    best_block_frame = pd.DataFrame()
+
+    while len(temp_frame.index) == window:
+        block_percent = await find_similarity(sample, temp_frame, window)
+        print(block_percent, open_time, close_time)
+        if block_percent > best_block_percent:
+            best_block_percent = block_percent
+            best_block_frame = temp_frame
+        open_time += timedelta(minutes=5 * window)
+        close_time += timedelta(minutes=5 * window)
+        temp_frame = await client.get_historical_data(symbol, interval, str(open_time), str(close_time))
+
+    print("BEST", best_block_percent)
+
+async def test():
+    await new_method("BTCUSDT", '5m', 60)
+
+
+if __name__ == '__main__':
+    asyncio.run(test())

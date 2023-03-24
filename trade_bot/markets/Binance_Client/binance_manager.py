@@ -1,36 +1,36 @@
-import logging
-import os
 import asyncio
+
 import pandas as pd
-import requests
 from binance.client import AsyncClient
-from data.database.commands import DbManager
+from trade_bot.database.db_commands import DbManager
 import aiohttp
-from data.report import *
+import calendar
+from datetime import datetime
 
 
 class BinanceManager:
     def __init__(self, tg_user_id):
         self.__db = DbManager()
-        self.user_id = self.__db.get_user_db_id(tg_user_id)
-        self.currency = self.__db.get_user_currency(self.user_id)
-        self.__auth_data = self.__db.get_user_keys(self.user_id)
+        self.tg_user_id = tg_user_id
         self.api_url = 'https://api.binance.com/api/v3/klines'
+        self.candle_data_limit = 1000
 
     async def show_coin_price(self, coin_pare):
-        client = await AsyncClient.create(*self.__auth_data)
+        auth_data = await self.__db.get_user_keys(self.tg_user_id)
+        client = await AsyncClient.create(*auth_data)
         response = await client.futures_mark_price(symbol=coin_pare)
         price = round(float(response['markPrice']), 3)
         await client.close_connection()
         return price
 
-    async def get_historical_data(self, coin_pare, interval, start_date, end_date) -> pd.DataFrame:
-        url = f'{self.api_url}?symbol={coin_pare}&interval={interval}&startTime={start_date}&endTime={end_date}'
+    async def get_historical_data(self, coin_pare, interval, start_date: str, end_date: str) -> pd.DataFrame:
+        start = calendar.timegm(datetime.fromisoformat(start_date).timetuple()) * 1000
+        end = calendar.timegm(datetime.fromisoformat(end_date).timetuple()) * 1000
+        url = f'{self.api_url}?symbol={coin_pare}&interval={interval}&limit={self.candle_data_limit}&startTime={start}&endTime={end}'
         async with aiohttp.ClientSession() as session:
             response = await session.get(url)
             response_data = await response.json()
-        print(response_data)
-        data = pd.DataFrame(json.load(response_data))
+        data = pd.DataFrame(response_data)
         if data.empty:
             return data
         data = data.drop(range(6, 12), axis=1)
@@ -117,20 +117,27 @@ class BinanceManager:
         return True, coin_pare, answer[0]
 
     async def show_futures_currency_balance(self):
-        all_balances = await self.client.futures_account_balance()
+        client = await AsyncClient.create(*(await self.__db.get_user_keys(self.user_id)))
+        all_balances = await client.futures_account_balance()
         for coin in all_balances:
             if coin['asset'] == self.currency:
                 return coin['withdrawAvailable']
+        await client.close_connection()
         return None
 
 
 async def main():
     ex = BinanceManager(595905860)
-    res = await ex.get_historical_data('BTCUSDT', '5m', '2022-04-12 18:00:08', '2022-04-12 19:20:08')
+    # first_date = (datetime.now() - timedelta(hours=5)).timestamp()
+    # second_date = datetime.now().timestamp()
+    # print(first_date, second_date)
+    # res = await ex.get_historical_data('BTCUSDT', '5m', first_date, second_date)
+    # print(res)
+    # print(res.info())
+    # for i in res.columns:
+    #     print(i)
+    res = await ex.show_coin_price("BTCUSDT")
     print(res)
-    print(res.info())
-    for i in res.columns:
-        print(i)
 
 
 if __name__ == '__main__':

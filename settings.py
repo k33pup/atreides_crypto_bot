@@ -1,8 +1,6 @@
 import os
 import logging
-import pathlib
-from pathlib import Path
-from data.report import setup_logger
+from trade_bot.data.report import setup_logger
 
 
 coin_list = [

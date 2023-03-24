@@ -1,11 +1,16 @@
-UserData_query = """INSERT INTO "UsersData" 
-(tg_id, license, binance_api_key, binance_secret_api_key, join_date) 
-VALUES (%s, %s, %s, %s, %s)
-"""
-GeneralSettings_query = """INSERT INTO "GeneralSettings" (id, coins, work_condition, currency) VALUES (%s, %s, %s, %s)"""
-OrdersSettings_query = """INSERT INTO "OrdersSettings" (id, symbol, leverage, stage_condition, sl_start_percent, 
-                            tp_first, tp_number, tp_only_one, sl_stage_percent) 
-                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"""
+import os
+from dotenv import load_dotenv, find_dotenv
+
+load_dotenv(find_dotenv())
+
+BOT_TOKEN = os.getenv('BOT_TOKEN')
+PG_PASSWORD = os.getenv('dbPass')
+DATABASE_NAME = os.getenv('db_name')
+IP = os.getenv('ip')
+PORT = os.getenv('port')
+
+PG_URL = f'postgresql+asyncpg://postgres:{PG_PASSWORD}@{IP}/{DATABASE_NAME}'
+
 start_coins = ["1INCH", "ALGO", "AVAX", "AXS", "CHZ", "COMP",
                "CRV", "DASH", "DOGE", "DOT", "EGLD", "ENJ", "EOS", "ETC",
                "FIL", "FTM", "KAVA", "KSM", "LINK", "LTC", "MATIC", "ONE", "SOL",

@@ -1,8 +1,8 @@
 from aiogram.dispatcher import FSMContext, Dispatcher
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram import types
-from telegram.telegram_texts import *
-from data.database.commands import DbManager
+from trade_bot.telegram.telegram_texts import *
+from trade_bot.database.db_commands import DbManager
 
 activate_key = '12345'
 
