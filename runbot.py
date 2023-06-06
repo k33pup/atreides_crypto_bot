@@ -3,8 +3,8 @@ from datetime import date, timedelta
 
 import requests
 import settings
-from trade_bot.data import Manager
-from trade_bot.stategy.indicators import Analyser
+from bot.utils import Manager
+from bot.trade.stategy import Analyser
 
 
 def send_signal(coin, signal, coin_price):
@@ -34,7 +34,7 @@ def send_reached_target(is_open, coin_pare, profit):
 
 
 def look_for_signal(BinanceManager, DataAnalyser):
-    with open('trade_bot/logs/active orders.json', 'r') as myfile:
+    with open('bot/logs/active orders.json', 'r') as myfile:
         data = json.loads(myfile.read())
     used_coins = []
     print(f"Looking for signal... at {datetime.now()}")
@@ -64,7 +64,7 @@ def look_for_signal(BinanceManager, DataAnalyser):
 
 
 def check_exist_signals(BinanceManager):
-    data = json.load(open('trade_bot/logs/active orders.json', 'r'))
+    data = json.load(open('bot/logs/active orders.json', 'r'))
     for coin in data:
         if answer := BinanceManager.check_coin_for_profit(coin):
             if answer is not False:

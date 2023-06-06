@@ -1,6 +1,6 @@
 import os
 import logging
-from trade_bot.data.report import setup_logger
+from bot.utils.report import setup_logger
 
 
 coin_list = [
@@ -18,7 +18,7 @@ MY_CHANNEL = -1001732576576
 TOKEN = os.environ['BOT_TOKEN']
 log_error = setup_logger('ERROR', f"swag logs/errors.log", logging.ERROR)
 log_binance = setup_logger('BINANCE', f'swag logs/binance.log')
-log_telegram = setup_logger('TELEGRAM', f'swag logs/telegram.log')
+log_telegram = setup_logger('TELEGRAM', f'swag logs/tg.log')
 currency = 'USDT'
 algo_interval = '15m'
 help_interval = {
