@@ -1,4 +1,4 @@
-from bot.settings.config import licenses
+from bot.config import licenses
 
 intro_text = "Привет! Это бот Atreides. Вы хотите подключить его к себе? Если да, отправьте ключ активации так:\n\n" \
              "/activate 1234567890"

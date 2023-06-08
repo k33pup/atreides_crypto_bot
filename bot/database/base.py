@@ -2,7 +2,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.orm import sessionmaker
-from bot.settings.config import PG_URL
+from bot.config import PG_URL
 
 engine = create_async_engine(PG_URL, echo=False)
 Base = declarative_base()

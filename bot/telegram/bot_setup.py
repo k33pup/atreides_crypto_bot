@@ -1,9 +1,8 @@
-from bot.database import __all_models
 from bot.database.base import __init__models
 from aiogram import Bot
 from aiogram.dispatcher import Dispatcher
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
-from bot.settings.config import BOT_TOKEN, NEED_TO_INIT_MODELS
+from bot.config import BOT_TOKEN, NEED_TO_INIT_MODELS
 from .filters import register_all_filters
 from .handlers import setup_all_handlers
 

@@ -1,7 +1,7 @@
 from aiogram.dispatcher import Dispatcher
 from aiogram import types
 from bot.telegram.templates.telegram_texts import *
-from bot.settings.config import licenses, key_length
+from bot.config import licenses, key_length
 from bot.database.db_commands import DbManager
 from bot.utils.license_cmd import create_license_key
 

@@ -1,7 +1,7 @@
 import typing
 from aiogram.dispatcher.filters import BoundFilter
 from bot.database.db_commands import DbManager
-from bot.settings.config import ADMINS
+from bot.config import ADMINS
 
 
 class ClientFilter(BoundFilter):

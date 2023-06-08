@@ -1,6 +1,6 @@
 import typing
 from aiogram.dispatcher.filters import BoundFilter
-from bot.settings.config import ADMINS
+from bot.config import ADMINS
 
 
 class AdminFilter(BoundFilter):
